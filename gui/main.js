@@ -12,7 +12,7 @@ class GUI {
 	}
 
 	init() {
-		this.window.onClose = () => gui.MessageLoop.quit();
+		this.window.onClose = () => process.exit(0);
 		this.window.activate();
 		if(!process.versions.yode) {
 			gui.MessageLoop.run();

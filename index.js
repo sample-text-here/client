@@ -12,6 +12,7 @@ let currentroom = null;
 client.login(options.user, options.pass);
 client.once("ready", e => {
 	const rooms = e.getRooms();
+	currentroom = rooms[0].roomId;
 	for(let room of rooms) {
 		mainScene.sidebar.room(room.name, room.roomId);
 	}
@@ -20,21 +21,29 @@ client.once("ready", e => {
 
 mainScene.input.on("text", (text) => {
 	if(!text.getText()) return;
-	// client.send({
-		// channel,
-		// content: text.getText(),
-		// author: "anon",
-	// });
+	client.send(currentroom, text.getText());
 	text.setText("");
 });
 
-client.on("message", async (message) => {
-	mainScene.messages.add({
-		body: message.event.content.body,
+client.on("message", async (message, room) => {
+	if(room.roomId !== currentroom) return;
+	const data = {
 		avatar: await client.getPfp(message.sender.userId),
 		author: message.sender.name,
 		sender: message.sender.userId,
-	});
+	};
+	if(message.event.content.msgtype === "m.image") {
+		data.type = "image"
+		data.img = await client.fetchImage(message.event.content.url);
+	} else {
+		data.type = "text";
+		data.body = message.event.content.body;
+	}
+	mainScene.messages.add(data);
+});
+
+mainScene.sidebar.on("click", (id) => {
+	currentroom = id;
 });
 
 function switchChannel(name) {

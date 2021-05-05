@@ -86,22 +86,28 @@ class Messages {
 	}
 
 	add(data) {
-		const body = gui.Label.create(data.body);
-		body.setAlign("start");
-		body.setVAlign("start");
-		body.setStyle({ width: "100%" });
-		if(this.lastauthor !== data.sender) {
-			const words = this.createContainer(data);
+		const words = this.getContainer(data);
+		if(data.type === "text") {
+			const body = gui.Label.create(data.body);
+			body.setAlign("start");
+			body.setVAlign("start");
+			body.setStyle({ width: "100%" });
 			words.addChildView(body);
 		} else {
-			const last = this.messages.childAt(this.messages.childCount() - 1);
-			const words = last.childAt(1);
-			words.addChildView(body);
+			const img = gui.GifPlayer.create();
+			img.setStyle({ maxWidth: "100%" });
+			img.setImage(data.img);
+			words.addChildView(img);
 		}
 		this.lastauthor = data.sender;
 	}
 
-	createContainer(data) {
+	getContainer(data) {
+		if(this.lastauthor === data.sender) {
+			const last = this.messages.childAt(this.messages.childCount() - 1);
+			return last.childAt(1);
+		}
+		
 		const container = gui.Container.create();
 		const words = gui.Container.create();
 		const pfp = gui.GifPlayer.create();
