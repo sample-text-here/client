@@ -1,5 +1,5 @@
 const gui = require("gui");
-const { Sidebar, Input, Messages } = require("./parts.js");
+const { Sidebar, Input, Messages } = require("../parts.js");
 
 class Main {
 	constructor() {

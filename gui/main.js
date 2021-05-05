@@ -1,4 +1,5 @@
 const gui = require("gui");
+global.windows = [];
 
 class GUI {
 	constructor() {
@@ -14,12 +15,7 @@ class GUI {
 	init() {
 		this.window.onClose = () => process.exit(0);
 		this.window.activate();
-		if(!process.versions.yode) {
-			gui.MessageLoop.run();
-			process.exit(0);
-		}
-
-		global.window = this.window;
+		global.windows.push(this.window);
 	}
 	
 	title(name) { this.window.setTitle(name) }

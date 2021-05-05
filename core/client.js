@@ -10,7 +10,6 @@ class Client extends EventEmitter {
 		const client = matrix.createClient("https://matrix.org");
 
 		client.on("Room.timeline", (event, ...args) => {
-			if (event.getType() !== "m.room.message") return;
 			this.emit("message", event, ...args);
 		});
 
@@ -24,6 +23,7 @@ class Client extends EventEmitter {
 		});
 		
 		this.client = client;
+		this.cache = new Map();
 		this.pfpcache = new Map();
 	}
 
@@ -32,26 +32,34 @@ class Client extends EventEmitter {
 		this.client.startClient();
 	}
 
-	async fetchImage(url) {
+	async fetch(url) {
+		if(this.cache.has(url)) return this.cache.get(url);
 		const direct = this.client.mxcUrlToHttp(url, 64, 64, "scale", true);
 		return new Promise((res, rej) => {
 			https.get(direct, (got) => {
 				const parts = [];
 				got.on("data", d => parts.push(d));
 				got.on("end", () => {
-					const img = gui.Image.createFromBuffer(Buffer.concat(parts), 1);
-					res(img);
+					const buf = Buffer.concat(parts);
+					this.cache.set(url, buf);
+					res(buf);
 				});
 			}).on("error", rej).end();
 		});
 	}
-
+	
 	async getPfp(id) {
 		if(this.pfpcache.has(id)) return this.pfpcache.get(id);
 		const url = (await this.client.getProfileInfo(id)).avatar_url;
-		const img = await this.fetchImage(url);
-		this.pfpcache.set(id, img);
-		return img;
+		return await this.fetch(url).then(buf => {
+			const img = gui.Image.createFromBuffer(buf, 1);
+			this.pfpcache.set(id, img);
+			return img;
+		}).catch(err => {
+			const img = gui.Image.createEmpty();
+			this.pfpcache.set(id, img);
+			return img;
+		})
 	}
 
 	async send(room, content) {

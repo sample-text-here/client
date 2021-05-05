@@ -1,6 +1,8 @@
+const Element = require("./base.js");
 const EventEmitter = require("events");
 const gui = require("gui");
 const handCursor = gui.Cursor.createWithType("hand");
+const textCursor = gui.Cursor.createWithType("text");
 const getFont = (...args) => gui.Font.default().derive(...args);
 const font = {
 	bold: getFont(1, "bold", "normal"),
@@ -10,7 +12,7 @@ const font = {
 	selected: getFont(1.5, "bold", "normal"),
 };
 
-class Input extends EventEmitter {
+class Input extends Element {
 	constructor() {
 		super();
 		
@@ -21,6 +23,15 @@ class Input extends EventEmitter {
 		text.setStyle({ flex: 1 });
 		text.onActivate = (self) => this.emit("text", self);
 		add.onClick = (self) => this.emit("attatch", self);
+
+		text.onKeyDown = (self, e) => {
+			if(e.modifiers !== gui.Event.maskControl) return;
+			if(e.key !== 'v') return;
+			const img = gui.Clipboard.get().getData("image");
+			if(img.type !== "image") return;
+			console.log(img.value);
+			return true;
+		};
 		
 		container.setStyle({ width: "100%", flexDirection: "row" });
 		container.addChildView(text);
@@ -58,24 +69,29 @@ class DragAndDrop {
 
 class Messages {
 	constructor() {
+		const scroll = gui.Scroll.create();
+		const container = gui.Container.create();
 		const messages = gui.Container.create();
-		const container = gui.Scroll.create();
-		messages.setStyle({
-			paddingLeft: 16,
-			paddingRight: 16,
-			paddingBottom: 8,
-			justifyContent: "flex-end",
-		});
+		const more = gui.Button.create("load more");
+
+		more.onClick = () => this.resize();
+		more.setStyle({ marginBottom: 16 });
+		more.setVisible(false);
+		container.setStyle({ padding: 16, justifyContent: "flex-end" });
+		container.addChildView(more);
+		container.addChildView(messages);
+		scroll.setStyle({ flex: 1 });
+		scroll.setContentView(container);
 		
-		container.setStyle({ flex: 1 });
-		container.setContentView(messages);
 		this.messages = messages;
 		this.container = container;
+		this.scroll = scroll;
+		this.more = more;
 		this.lastauthor = null;
 	}
 
 	build(parent) {
-		parent.addChildView(this.container);
+		parent.addChildView(this.scroll);
 	}
 
 	clear() {
@@ -83,6 +99,7 @@ class Messages {
 		while(messages.childCount()) {
 			messages.removeChildView(messages.childAt(0));
 		}
+		this.lastauthor = null;
 	}
 
 	add(data) {
@@ -91,12 +108,14 @@ class Messages {
 			const body = gui.Label.create(data.body);
 			body.setAlign("start");
 			body.setVAlign("start");
-			body.setStyle({ width: "100%" });
+			body.setCursor(textCursor);
 			words.addChildView(body);
 		} else {
 			const img = gui.GifPlayer.create();
-			img.setStyle({ maxWidth: "100%" });
-			img.setImage(data.img);
+			img.setStyle({ maxWidth: "100%", minWidth: 32, minHeight: 32 });
+			img.setImage(gui.Image.createFromBuffer(data.img, 1));
+			img.setCursor(handCursor);
+			img.onMouseDown = data.download;
 			words.addChildView(img);
 		}
 		this.lastauthor = data.sender;
@@ -120,6 +139,7 @@ class Messages {
 		author.setFont(font.bold);
 		author.setAlign("start");
 		author.setVAlign("start");
+		author.setCursor(textCursor);
 
 		words.addChildView(author);
 		container.addChildView(pfp);
@@ -129,13 +149,15 @@ class Messages {
 	}
 
 	resize() {
-		this.container.setContentSize({
-			height: this.messages.getPreferredSize().height,
-		});
+		// waiting for https://github.com/yue/yue/issues/119
+		// const { height }= this.container.getPreferredSize();
+		// this.scroll.setContentSize({ height });
+		this.scroll.setContentSize({ height: 1000 });
 	}
 }
 
-class Sidebar extends EventEmitter {
+// sidebar with clickable items
+class Sidebar extends Element {
 	constructor() {
 		super();
 		
@@ -157,7 +179,7 @@ class Sidebar extends EventEmitter {
 		}
 	}
 
-	room(name, id) {
+	button(name, id) {
 		const button = gui.Label.create("  " + name);
 		const bg = color => () => button.setBackgroundColor(color);
 		button.setCursor(handCursor);
