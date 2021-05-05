@@ -28,8 +28,13 @@ mainScene.input.on("text", (text) => {
 	text.setText("");
 });
 
-client.on("message", (message) => {
-	mainScene.messages.add(message);
+client.on("message", async (message) => {
+	mainScene.messages.add({
+		body: message.event.content.body,
+		avatar: await client.getPfp(message.sender.userId),
+		author: message.sender.name,
+		sender: message.sender.userId,
+	});
 });
 
 function switchChannel(name) {

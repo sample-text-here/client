@@ -86,30 +86,40 @@ class Messages {
 	}
 
 	add(data) {
-		const body = gui.Label.create(data.event.content.body);
+		const body = gui.Label.create(data.body);
 		body.setAlign("start");
 		body.setVAlign("start");
 		body.setStyle({ width: "100%" });
-		if(this.lastauthor !== data.event.sender) {
-			const container = gui.Container.create();
-			// const words = gui.Container.create();
-			const author = gui.Label.create(data.sender.name);
-			// container.setStyle({ flexDirection: "row", marginBottom: 4 });
-			container.setStyle({ marginBottom: 4 });
-			author.setFont(font.bold);
-			author.setAlign("start");
-			author.setVAlign("start");
-			container.addChildView(author);
-			container.addChildView(body);
-			// container.addChildView(words);
-			// words.addChildView(body);
-			this.messages.addChildView(container);	
+		if(this.lastauthor !== data.sender) {
+			const words = this.createContainer(data);
+			words.addChildView(body);
 		} else {
 			const last = this.messages.childAt(this.messages.childCount() - 1);
-			// const words = last.childAt(1);
-			last.addChildView(body);
+			const words = last.childAt(1);
+			words.addChildView(body);
 		}
-		this.lastauthor = data.event.sender;
+		this.lastauthor = data.sender;
+	}
+
+	createContainer(data) {
+		const container = gui.Container.create();
+		const words = gui.Container.create();
+		const pfp = gui.GifPlayer.create();
+		const author = gui.Label.create(data.author);
+
+		container.setStyle({ flexDirection: "row", marginBottom: 4 });
+		pfp.setStyle({ width: 32, height: 32, marginRight: 8 });
+		pfp.setScale("down");
+		pfp.setImage(data.avatar);
+		author.setFont(font.bold);
+		author.setAlign("start");
+		author.setVAlign("start");
+
+		words.addChildView(author);
+		container.addChildView(pfp);
+		container.addChildView(words);
+		this.messages.addChildView(container);
+		return words;
 	}
 
 	resize() {
