@@ -13,9 +13,10 @@ class Client extends EventEmitter {
 			this.emit("message", event, ...args);
 		});
 
-		client.once('sync', (state) => {
+		client.once('sync', async (state) => {
 			if(state === 'PREPARED') {
 				this.emit("ready", client);
+				// console.log(await client.publicRooms());
 			} else {
 				console.error(state);
 				process.exit(1);
@@ -25,6 +26,10 @@ class Client extends EventEmitter {
 		this.client = client;
 		this.cache = new Map();
 		this.pfpcache = new Map();
+		this.pfpcache.set(
+			null,
+			gui.Image.createFromPath("assets/nopfp.png"),
+		);
 	}
 
 	async login(user, password) {
@@ -51,18 +56,13 @@ class Client extends EventEmitter {
 	async getPfp(id) {
 		if(this.pfpcache.has(id)) return this.pfpcache.get(id);
 		const url = (await this.client.getProfileInfo(id)).avatar_url;
-		if(!url) {
-			const img = gui.Image.createEmpty();
-			this.pfpcache.set(id, img);
-			return img;
-		}
 		return await this.fetch(url, 32, 32).then(buf => {
 			const img = gui.Image.createFromBuffer(buf, 1);
 			this.pfpcache.set(id, img);
 			return img;
 		}).catch(err => {
-			const img = gui.Image.createEmpty();
-			this.pfpcache.set(id, img);
+			const img = this.pfpcache.get(null);
+			this.pfpcache.get(id, img);
 			return img;
 		})
 	}

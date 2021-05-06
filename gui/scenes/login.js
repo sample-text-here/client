@@ -1,6 +1,6 @@
 const EventEmitter = require("events");
 const gui = require("gui");
-const { font } = require("./parts.js");
+const { font } = require("../core/vars.js");
 
 function label(text) {
 	const label = gui.Label.create(text);

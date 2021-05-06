@@ -3,14 +3,7 @@ const EventEmitter = require("events");
 const gui = require("gui");
 const handCursor = gui.Cursor.createWithType("hand");
 const textCursor = gui.Cursor.createWithType("text");
-const getFont = (...args) => gui.Font.default().derive(...args);
-const font = {
-	bold: getFont(1, "bold", "normal"),
-	button: getFont(1.5, "normal", "normal"),
-	title: getFont(1.5, "normal", "normal"),
-	titleBold: getFont(1.5, "bold", "normal"),
-	selected: getFont(1.5, "bold", "normal"),
-};
+const { font } = require("../core/vars.js");
 
 class Input extends Element {
 	constructor() {
@@ -21,6 +14,7 @@ class Input extends Element {
 		const add = gui.Button.create("+");
 		
 		text.setStyle({ flex: 1 });
+		text.setFont(font.default);
 		text.onActivate = (self) => this.emit("text", self);
 		add.onClick = (self) => this.emit("attatch", self);
 
@@ -99,6 +93,7 @@ class Messages {
 			const body = gui.Label.create(data.body);
 			body.setAlign("start");
 			body.setVAlign("start");
+			body.setFont(font.default);
 			// body.setCursor(textCursor);
 			words.addChildView(body);
 			body.setFocusable(true);
@@ -173,16 +168,22 @@ class Sidebar extends Element {
 	}
 
 	button(name, id) {
-		const button = gui.Label.create("  " + name);
+		const button = gui.Container.create();
+		const label = gui.Label.create(name);
 		const bg = color => () => button.setBackgroundColor(color);
-		button.setCursor(handCursor);
-		button.setFont(font.button);
+		label.setStyle({ marginRight: 4, marginLeft: 4 });
+		label.setAlign("start");
+		label.setFont(font.button);
+		label.setCursor(handCursor);
 		button.setStyle({ width: "100%", padding: 4 });
-		button.setAlign("start");
+		button.setCursor(handCursor);
 		button.setFocusable(true);
+		label.onMouseEnter = bg("#222222");
+		label.onMouseLeave = bg("#222222");
 		button.onMouseEnter = bg("#222222");
 		button.onMouseLeave = bg("#333333");
 		button.onMouseDown = () => this.emit("click", id);
+		button.addChildView(label);
 		this.sidebar.addChildView(button);
 	}
 
