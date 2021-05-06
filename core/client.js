@@ -32,9 +32,9 @@ class Client extends EventEmitter {
 		this.client.startClient();
 	}
 
-	async fetch(url) {
+	async fetch(url, w, h) {
 		if(this.cache.has(url)) return this.cache.get(url);
-		const direct = this.client.mxcUrlToHttp(url, 64, 64, "scale", true);
+		const direct = this.client.mxcUrlToHttp(url, w, h, "scale", true);
 		return new Promise((res, rej) => {
 			https.get(direct, (got) => {
 				const parts = [];
@@ -51,7 +51,12 @@ class Client extends EventEmitter {
 	async getPfp(id) {
 		if(this.pfpcache.has(id)) return this.pfpcache.get(id);
 		const url = (await this.client.getProfileInfo(id)).avatar_url;
-		return await this.fetch(url).then(buf => {
+		if(!url) {
+			const img = gui.Image.createEmpty();
+			this.pfpcache.set(id, img);
+			return img;
+		}
+		return await this.fetch(url, 32, 32).then(buf => {
 			const img = gui.Image.createFromBuffer(buf, 1);
 			this.pfpcache.set(id, img);
 			return img;

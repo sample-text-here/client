@@ -70,23 +70,14 @@ class DragAndDrop {
 class Messages {
 	constructor() {
 		const scroll = gui.Scroll.create();
-		const container = gui.Container.create();
 		const messages = gui.Container.create();
-		const more = gui.Button.create("load more");
 
-		more.onClick = () => this.resize();
-		more.setStyle({ marginBottom: 16 });
-		more.setVisible(false);
-		container.setStyle({ padding: 16, justifyContent: "flex-end" });
-		container.addChildView(more);
-		container.addChildView(messages);
+		messages.setStyle({ padding: 16, paddingBottom: 8, justifyContent: "flex-end" });
 		scroll.setStyle({ flex: 1 });
-		scroll.setContentView(container);
+		scroll.setContentView(messages);
 		
 		this.messages = messages;
-		this.container = container;
 		this.scroll = scroll;
-		this.more = more;
 		this.lastauthor = null;
 	}
 
@@ -108,14 +99,16 @@ class Messages {
 			const body = gui.Label.create(data.body);
 			body.setAlign("start");
 			body.setVAlign("start");
-			body.setCursor(textCursor);
+			// body.setCursor(textCursor);
 			words.addChildView(body);
+			body.setFocusable(true);
 		} else {
 			const img = gui.GifPlayer.create();
-			img.setStyle({ maxWidth: "100%", minWidth: 32, minHeight: 32 });
-			img.setImage(gui.Image.createFromBuffer(data.img, 1));
+			img.setStyle({ maxWidth: "100%", minWidth: 32, minHeight: 32, alignSelf: "flex-start" });
+			img.setImage(data.img);
 			img.setCursor(handCursor);
 			img.onMouseDown = data.download;
+			img.setFocusable(true);
 			words.addChildView(img);
 		}
 		this.lastauthor = data.sender;
@@ -132,7 +125,7 @@ class Messages {
 		const pfp = gui.GifPlayer.create();
 		const author = gui.Label.create(data.author);
 
-		container.setStyle({ flexDirection: "row", marginBottom: 4 });
+		container.setStyle({ flexDirection: "row", marginBottom: 8 });
 		pfp.setStyle({ width: 32, height: 32, marginRight: 8 });
 		pfp.setScale("down");
 		pfp.setImage(data.avatar);
@@ -150,9 +143,9 @@ class Messages {
 
 	resize() {
 		// waiting for https://github.com/yue/yue/issues/119
-		// const { height }= this.container.getPreferredSize();
+		// const { height }= this.messages.getPreferredSize();
 		// this.scroll.setContentSize({ height });
-		this.scroll.setContentSize({ height: 1000 });
+		this.scroll.setContentSize({ height: 10000 });
 	}
 }
 
@@ -186,6 +179,7 @@ class Sidebar extends Element {
 		button.setFont(font.button);
 		button.setStyle({ width: "100%", padding: 4 });
 		button.setAlign("start");
+		button.setFocusable(true);
 		button.onMouseEnter = bg("#222222");
 		button.onMouseLeave = bg("#333333");
 		button.onMouseDown = () => this.emit("click", id);

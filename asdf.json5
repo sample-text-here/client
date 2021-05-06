@@ -1,0 +1,8 @@
+{
+	font: {
+		default: "assets/Hack-Regular.ttf",
+		bold: "assets/Hack-Bold.ttf",
+		italic: "assets/Hack-Italic.ttf",
+		bolditalic: "assets/Hack-BoldItalic.ttf",
+	},
+}
