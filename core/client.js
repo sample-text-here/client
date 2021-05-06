@@ -76,6 +76,14 @@ class Client extends EventEmitter {
 		}
 	    await this.client.sendEvent(room, "m.room.message", content);
 	}
+
+	async rewind(room, amount = 30) {
+		const timeline = room.getLiveTimeline();
+		return await this.client.paginateEventTimeline(timeline, {
+			limit: amount,
+			backwards: true,
+		});
+	}
 }
 
 module.exports = Client;

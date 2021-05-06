@@ -17,6 +17,7 @@ client.once("ready", e => {
 		chat.sidebar.button(room.name, room.roomId);
 	}
 	switchRoom(rooms[0].roomId);
+	chat.messages.rewind.setEnabled(true);
 });
 
 chat.input.on("text", (text) => {
@@ -25,10 +26,20 @@ chat.input.on("text", (text) => {
 	text.setText("");
 });
 
+chat.messages.on("rewind", async () => {
+	const { rewind } = chat.messages;
+	const amount = 30;
+	rewind.setEnabled(false);
+	rewind.setTitle("rewinding");
+	await client.rewind(currentroom, amount);
+	rewind.setTitle("rewind");
+	rewind.setEnabled(true);
+});
+
 client.on("message", handleMessage);
 chat.sidebar.on("click", switchRoom);
 
-async function handleMessage(message, room) {
+async function handleMessage(message, room, toBeginning) {
 	if(room.roomId !== currentroom?.roomId) return;
 	if (message.getType() !== "m.room.message") return;
 	if(!message.event.content.body) return;
@@ -36,6 +47,7 @@ async function handleMessage(message, room) {
 		avatar: await client.getPfp(message.sender.userId),
 		author: message.sender.name,
 		sender: message.sender.userId,
+		id: message.event.event_id,
 	};
 	if(message.event.content.msgtype === "m.image") {
 		const { url, info } = message.event.content;
@@ -50,26 +62,23 @@ async function handleMessage(message, room) {
 		data.type = "text";
 		data.body = message.event.content.body;
 	}
-	chat.messages.add(data);
+	
+	if(toBeginning) {
+		chat.messages.prepend(data);
+	} else {
+		chat.messages.append(data);
+	}
 }
 
 async function switchRoom(id) {
 	currentroom = client.client.getRoom(id);
 	window.title(`${currentroom.name} - matrix`);
 	chat.messages.clear();
-	const len = currentroom.timeline.length;
-	for(let i = len - 30; i < len; i++) {
-		if(i < 0) continue;
-		await handleMessage(currentroom.timeline[i], currentroom);
+	for(let i of currentroom.timeline) {
+		await handleMessage(i, currentroom);
 	}
 	chat.messages.resize();
 }
 
 window.scene(chat);
 window.init();
-
-
-
-
-
-

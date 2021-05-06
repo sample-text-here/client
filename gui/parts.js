@@ -61,18 +61,29 @@ class DragAndDrop {
 	}
 }
 
-class Messages {
+class Messages extends Element {
 	constructor() {
+		super();
+		
 		const scroll = gui.Scroll.create();
+		const container = gui.Container.create();
+		const rewind = gui.Button.create("rewind");
 		const messages = gui.Container.create();
 
-		messages.setStyle({ padding: 16, paddingBottom: 8, justifyContent: "flex-end" });
+		rewind.setEnabled(false);
+		rewind.onClick = () => this.emit("rewind");
+		container.setStyle({ justifyContent: "flex-end" });
+		messages.setStyle({ padding: 16, paddingBottom: 8 });
+		container.addChildView(rewind);
+		container.addChildView(messages);
 		scroll.setStyle({ flex: 1 });
-		scroll.setContentView(messages);
+		scroll.setContentView(container);
 		
 		this.messages = messages;
+		this.rewind = rewind;
 		this.scroll = scroll;
 		this.lastauthor = null;
+		this.map = new Map();
 	}
 
 	build(parent) {
@@ -85,18 +96,32 @@ class Messages {
 			messages.removeChildView(messages.childAt(0));
 		}
 		this.lastauthor = null;
+		this.map.clear();
 	}
 
-	add(data) {
+	append(data) {
+		if(this.map.has(data.id)) return;
 		const words = this.getContainer(data);
+		this.add(data, words);
+		this.lastauthor = data.sender;
+	}
+	
+	prepend(data) {
+		if(this.map.has(data.id)) return;
+		const words = this.getContainer(data, true);
+		this.add(data, words);
+	}
+
+	add(data, container) {
 		if(data.type === "text") {
 			const body = gui.Label.create(data.body);
 			body.setAlign("start");
 			body.setVAlign("start");
 			body.setFont(font.default);
 			// body.setCursor(textCursor);
-			words.addChildView(body);
 			body.setFocusable(true);
+			container.addChildView(body);
+			this.map.set(data.id, body);
 		} else {
 			const img = gui.GifPlayer.create();
 			img.setStyle({ maxWidth: "100%", minWidth: 32, minHeight: 32, alignSelf: "flex-start" });
@@ -104,13 +129,13 @@ class Messages {
 			img.setCursor(handCursor);
 			img.onMouseDown = data.download;
 			img.setFocusable(true);
-			words.addChildView(img);
+			this.map.set(data.id, img);
+			container.addChildView(img);
 		}
-		this.lastauthor = data.sender;
 	}
 
-	getContainer(data) {
-		if(this.lastauthor === data.sender) {
+	getContainer(data, prepend = false) {
+		if(!prepend && this.lastauthor === data.sender) {
 			const last = this.messages.childAt(this.messages.childCount() - 1);
 			return last.childAt(1);
 		}
@@ -132,7 +157,11 @@ class Messages {
 		words.addChildView(author);
 		container.addChildView(pfp);
 		container.addChildView(words);
-		this.messages.addChildView(container);
+		if(prepend) {
+			this.messages.addChildViewAt(container, 0);
+		} else {
+			this.messages.addChildView(container);
+		}
 		return words;
 	}
 
