@@ -1,27 +1,83 @@
 const gui = require("gui");
-const { Sidebar, Input, Messages } = require("../parts.js");
+const { font } = require("../../core/vars.js");
+const { Input, Messages } = require("../parts.js");
 
-class Main {
+class Typing {
 	constructor() {
-		const main = gui.Container.create();
-		const content = gui.Container.create();
-		const sidebar = new Sidebar();
-		const input = new Input();
-		const messages = new Messages();
+		const container = gui.Container.create();
+		const display = gui.Label.create("");
+
+		display.setAlign("start");
+		display.setFont(font.small);
+		container.setStyle({
+			paddingTop: 2,
+			paddingBottom: 3,
+			paddingLeft: 4,
+			paddingRight: 4,
+		});
+		container.setBackgroundColor("#222222");
+		container.addChildView(display);
 		
-		main.setStyle({ flexDirection: "row" });
-		content.setBackgroundColor("#2e2e2e");
-		content.setStyle({ flex: 4 });
-		messages.build(content);
-		input.build(content);
-		sidebar.build(main);
-		main.addChildView(content);
-		
-		this.sidebar = sidebar;
-		this.messages = messages;
-		this.input = input;
-		this.main = main;
+		this.users = new Map();
+		this.display = display;
+		this.container = container;
+		this.text = "";
+
+		let dots = 0;
+		setInterval(() => {
+			if(!this.text) {
+				this.display.setText("");
+				return;
+			}
+			this.display.setText(this.text + ".".repeat(dots));
+			dots = (dots + 1) % 4;
+		}, 200);
+	}
+
+	reset() {
+		this.users.clear();
+		this.display.setText("");
+	}
+
+	update(member) {
+		if(member.typing) {
+			this.users.set(member.userId, member.rawDisplayName);
+		} else {
+			this.users.delete(member.userId);
+		}
+
+		if(this.users.size === 1) {
+			this.text = `${member.rawDisplayName} is typing`;
+		} else if(this.users.size) {
+			let out = " ";
+			for(let i of this.users) out += i[1] + ", ";
+			this.text = `${out.slice(0, -2)} are typing`;
+		} else {
+			this.text = "";
+		}
+	}
+
+	build(parent) {
+		parent.addChildView(this.container);
 	}
 }
 
-module.exports = Main;
+class Chat {
+	constructor() {
+		const input = new Input();
+		const messages = new Messages();
+		const typing = new Typing();
+		
+		this.messages = messages;
+		this.typing = typing;
+		this.input = input;
+	}
+
+	build(parent) {
+		this.messages.build(parent);
+		this.typing.build(parent);
+		this.input.build(parent);
+	}
+}
+
+module.exports = Chat;

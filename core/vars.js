@@ -8,10 +8,11 @@ function parseFont() {
 	const font = {
 		default: baseFont,
 		bold: getFont("bold", "bold", "normal"),
-		title: getFont("title", "normal", "normal", 1.5),
-		button: getFont("button", "normal", "normal", 1.5),
-		titleBold: getFont("button", "bold", "normal", 1.5),
-		selected: getFont("button", "bold", "normal", 1.5),
+		small: getFont("small", "normal", "normal", -2),
+		title: getFont("title", "normal", "normal", 2),
+		button: getFont("button", "normal", "normal", 2),
+		titleBold: getFont("button", "bold", "normal", 2),
+		selected: getFont("button", "bold", "normal", 2),
 	};
 	return font;
 	

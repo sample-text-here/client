@@ -37,8 +37,8 @@ class Client extends EventEmitter {
 		this.client.startClient();
 	}
 
-	async fetch(url, w, h) {
-		if(this.cache.has(url)) return this.cache.get(url);
+	async fetch(url, w, h, force = false) {
+		if(this.cache.has(url) && !force) return this.cache.get(url);
 		const direct = this.client.mxcUrlToHttp(url, w, h, "scale", true);
 		return new Promise((res, rej) => {
 			https.get(direct, (got) => {

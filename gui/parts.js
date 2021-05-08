@@ -3,18 +3,17 @@ const EventEmitter = require("events");
 const gui = require("gui");
 const handCursor = gui.Cursor.createWithType("hand");
 const textCursor = gui.Cursor.createWithType("text");
+const loadingCursor = gui.Cursor.createWithType("progress");
 const { font } = require("../core/vars.js");
 
 class Input extends Element {
 	constructor() {
 		super();
 		
-		const text = gui.Entry.create();
 		const container = gui.Container.create();
+		const text = gui.Entry.create();
 		const add = gui.Button.create("+");
 		
-		text.setStyle({ flex: 1 });
-		text.setFont(font.default);
 		text.onActivate = (self) => this.emit("text", self);
 		add.onClick = (self) => this.emit("attatch", self);
 
@@ -23,14 +22,16 @@ class Input extends Element {
 			if(e.key !== 'v') return;
 			const img = gui.Clipboard.get().getData("image");
 			if(img.type !== "image") return;
-			console.log(img.value);
 			return true;
 		};
-		
+
+		text.setStyle({ flex: 1 });
+		text.setFont(font.default);
 		container.setStyle({ width: "100%", flexDirection: "row" });
 		container.addChildView(text);
 		container.addChildView(add);
 		
+		this.add = add;
 		this.text = text;
 		this.container = container;
 	}
@@ -82,6 +83,7 @@ class Messages extends Element {
 		this.messages = messages;
 		this.rewind = rewind;
 		this.scroll = scroll;
+		this.firstauthor = null;
 		this.lastauthor = null;
 		this.map = new Map();
 	}
@@ -96,6 +98,7 @@ class Messages extends Element {
 			messages.removeChildView(messages.childAt(0));
 		}
 		this.lastauthor = null;
+		this.firstauthor = null;
 		this.map.clear();
 	}
 
@@ -109,28 +112,41 @@ class Messages extends Element {
 	prepend(data) {
 		if(this.map.has(data.id)) return;
 		const words = this.getContainer(data, true);
-		this.add(data, words);
+		this.add(data, words, true);
+		this.firstauthor = data.sender;
 	}
 
-	add(data, container) {
+	add(data, container, prepend = false) {
 		if(data.type === "text") {
 			const body = gui.Label.create(data.body);
 			body.setAlign("start");
 			body.setVAlign("start");
 			body.setFont(font.default);
 			// body.setCursor(textCursor);
-			body.setFocusable(true);
-			container.addChildView(body);
+			// body.setFocusable(true);
+			add(body);
 			this.map.set(data.id, body);
 		} else {
 			const img = gui.GifPlayer.create();
 			img.setStyle({ maxWidth: "100%", minWidth: 32, minHeight: 32, alignSelf: "flex-start" });
 			img.setImage(data.img);
 			img.setCursor(handCursor);
-			img.onMouseDown = data.download;
-			img.setFocusable(true);
+			img.onMouseDown = async () => {
+				img.setCursor(loadingCursor);
+				await data.download();
+				img.setCursor(handCursor);
+			};
+			// img.setFocusable(true);
+			add(img);
 			this.map.set(data.id, img);
-			container.addChildView(img);
+		}
+
+		function add(view) {
+			if(prepend) {
+				container.addChildViewAt(view, 1);
+			} else {
+				container.addChildView(view);
+			}
 		}
 	}
 
@@ -138,6 +154,10 @@ class Messages extends Element {
 		if(!prepend && this.lastauthor === data.sender) {
 			const last = this.messages.childAt(this.messages.childCount() - 1);
 			return last.childAt(1);
+		}
+		
+		if(prepend && this.firstauthor === data.sender) {
+			return this.messages.childAt(0).childAt(1);
 		}
 		
 		const container = gui.Container.create();
@@ -169,7 +189,7 @@ class Messages extends Element {
 		// waiting for https://github.com/yue/yue/issues/119
 		// const { height }= this.messages.getPreferredSize();
 		// this.scroll.setContentSize({ height });
-		this.scroll.setContentSize({ height: 10000 });
+		this.scroll.setContentSize({ height: 20000 });
 	}
 }
 

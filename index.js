@@ -14,10 +14,16 @@ client.login(options.user, options.pass);
 client.once("ready", e => {
 	const rooms = e.getRooms().sort((a, b) => a.name > b.name ? 1 : -1);
 	for(let room of rooms) {
-		chat.sidebar.button(room.name, room.roomId);
+		window.sidebar.button(room.name, room.roomId);
 	}
 	switchRoom(rooms[0].roomId);
 	chat.messages.rewind.setEnabled(true);
+});
+
+client.client.on("RoomMember.typing", (event, member) => {
+	if(member.roomId !== currentroom?.roomId) return;
+	if(client.client.isUserIgnored(member.userId)) return;
+ 	chat.typing.update(member);
 });
 
 chat.input.on("text", (text) => {
@@ -28,52 +34,60 @@ chat.input.on("text", (text) => {
 
 chat.messages.on("rewind", async () => {
 	const { rewind } = chat.messages;
-	const amount = 30;
+	const amount = 50;
 	rewind.setEnabled(false);
 	rewind.setTitle("rewinding");
-	await client.rewind(currentroom, amount);
+	const rewound = await client.rewind(currentroom, amount);
+	for(let i of rewound.chunk) {
+		if (i.type !== "m.room.message") return;
+		if(!i.content.body) return;
+		const user = client.client.getUser(i.user_id);
+		chat.messages.prepend(await getData(i, user, currentroom));
+	}
 	rewind.setTitle("rewind");
 	rewind.setEnabled(true);
 });
 
 client.on("message", handleMessage);
-chat.sidebar.on("click", switchRoom);
+window.sidebar.on("click", switchRoom);
 
 async function handleMessage(message, room, toBeginning) {
 	if(room.roomId !== currentroom?.roomId) return;
-	if (message.getType() !== "m.room.message") return;
+	if(message.getType() !== "m.room.message") return;
 	if(!message.event.content.body) return;
+	if(toBeginning) return;
+	const data = await getData(message.event, message.sender, room);
+	chat.messages.append(data);
+}
+
+async function getData(message, sender, room) {
 	const data = {
-		avatar: await client.getPfp(message.sender.userId),
-		author: message.sender.name,
-		sender: message.sender.userId,
-		id: message.event.event_id,
+		avatar: await client.getPfp(sender.userId),
+		author: sender.rawDisplayName,
+		sender: sender.userId,
+		id: message.event_id,
 	};
-	if(message.event.content.msgtype === "m.image") {
-		const { url, info } = message.event.content;
+	if(message.content.msgtype === "m.image") {
+		const { url, info } = message.content;
 		data.type = "image";
 		data.img = gui.Image.createFromBuffer(await client.fetch(url, 64, 64), 1);
 		data.download = async () => {
-			const where = path.join(tmp, message.event.content.body);
-			fs.writeFileSync(where, await client.fetch(url, info.w, info.h));
+			const where = path.join(tmp, message.content.body);
+			fs.writeFileSync(where, await client.fetch(url, info.w, info.h, true));
 			open(where);
 		};
 	} else {
 		data.type = "text";
-		data.body = message.event.content.body;
+		data.body = message.content.body;
 	}
-	
-	if(toBeginning) {
-		chat.messages.prepend(data);
-	} else {
-		chat.messages.append(data);
-	}
+	return data;
 }
 
 async function switchRoom(id) {
 	currentroom = client.client.getRoom(id);
 	window.title(`${currentroom.name} - matrix`);
 	chat.messages.clear();
+	chat.typing.reset();
 	for(let i of currentroom.timeline) {
 		await handleMessage(i, currentroom);
 	}
